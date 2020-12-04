@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"regexp"
@@ -14,6 +15,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 )
+
+//Entity holds all information
+type Entity struct {
+	MainDomain  string
+	RedirectsTo string
+	Links       []string
+	Texts       []Resp
+}
 
 //Domain holds all scraped data
 //This is internal struct
@@ -41,11 +50,13 @@ func NewDomainCollector() *Domain {
 
 //Start starts scraping
 func (d *Domain) Start(dlink string) (data []Resp) {
-	links, err := d.collectLinks(dlink)
+	links, redirectedTo, err := d.collectLinks(dlink)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+
+	fmt.Println(redirectedTo)
 
 	d.dlink = dlink
 	sem := make(chan bool, 10)
@@ -83,21 +94,26 @@ func (d *Domain) Start(dlink string) (data []Resp) {
 //collectLinks parses 1st page without creating Chrome instance,
 //and collects all links which are belogs to same host, and filter out
 //links to pdf and doc files.
-func (d *Domain) collectLinks(domainLink string) (links []string, err error) {
+func (d *Domain) collectLinks(domainLink string) (links []string, redirectedTo string, err error) {
 	mclient := client.CreateClient()
 
-	links = append(links, domainLink)
-
-	dURL, err := url.ParseRequestURI(domainLink)
-	if err != nil {
-		return links, errors.Wrap(err, "Cannot parse domain URL "+domainLink)
-	}
-
 	um := make(map[string]bool)
-	doc, err := mclient.Get(domainLink)
+
+	var (
+		doc *goquery.Document
+	)
+
+	doc, redirectedTo, err = mclient.GetRedirect(domainLink)
 	if err != nil {
-		return links, errors.Wrap(err, "Cannot get domain link")
+		return links, "", errors.Wrap(err, "Cannot get domain link")
 	}
+
+	dURL, err := url.ParseRequestURI(redirectedTo)
+	if err != nil {
+		return links, "", errors.Wrap(err, "Cannot parse domain URL "+domainLink)
+	}
+	links = append(links, redirectedTo)
+
 	//doc, err := goquery.NewDocumentFromReader(bytes.NewReader(b))
 	doc.Find(`a`).Each(func(i int, s *goquery.Selection) {
 		if href, ok := s.Attr(`href`); ok {

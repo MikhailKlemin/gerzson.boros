@@ -69,3 +69,34 @@ func (m *MyClient) Get(link string) (doc *goquery.Document, err error) {
 	return
 
 }
+
+//GetRedirect is Get request
+func (m *MyClient) GetRedirect(link string) (doc *goquery.Document, redirectedTo string, err error) {
+	counter := 0
+	for {
+		if counter > 1 {
+			return doc, "", fmt.Errorf("%s: %w", link, ErrRetry)
+		}
+		counter++
+		resp, err := m.client.Get(link)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		doc, err = goquery.NewDocumentFromReader(resp.Body)
+		if err != nil {
+			log.Println(err)
+
+			time.Sleep(10 * time.Second)
+			resp.Body.Close()
+			continue
+		}
+		resp.Body.Close()
+		redirectedTo = resp.Request.URL.String()
+		break
+	}
+	return
+
+}
