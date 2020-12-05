@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MikhailKlemin/gerzson.boros/pkg/collector"
+	"github.com/MikhailKlemin/gerzson.boros/collector"
 )
 
 //var domains = []string{"femina.hu", "totalcar.hu", "velvet.hu", "telekom.hu", "rtl.hu", "emag.hu", "portfolio.hu", "eropolis.hu", "ripost.hu", "argep.hu", "t-online.hu", "prohardver.hu", "napi.hu", "nosalty.hu", "bme.hu", "sorozatjunkie.hu", "mestermc.hu", "love.hu", "keptelenseg.hu", "e-kreta.hu", "oktatas.hu", "blogstar.hu", "csubakka.hu", "mozanaplo.hu", "hwsw.hu", "liked.hu", "hupont.hu", "jysk.hu", "aczelauto.hu", "aczelestarsa.hu", "aczelpetra.hu", "ad.hu", "ad-media.hu", "ad6kap6.hu", "adab.hu"}
@@ -40,9 +40,9 @@ func main() {
 func start(outDir, domainPath string) {
 
 	domains := loaddomains(domainPath)
+	domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
-	d := collector.NewDomainCollector()
 	sem := make(chan bool, 40)
 
 	fmt.Println("Total domains to scrap:\t", len(domains))
@@ -56,7 +56,8 @@ func start(outDir, domainPath string) {
 		sem <- true
 		go func(dl string) {
 			defer func() { <-sem }()
-			data := d.Start("http://" + dl)
+			d := collector.NewCollector("http://" + dl)
+			data := d.Start()
 			sample, _ := json.MarshalIndent(data, "", "    ")
 			if err := ioutil.WriteFile(filepath.Join(outDir, dl+".json"), sample, 0600); err != nil {
 				log.Println(err)
