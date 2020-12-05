@@ -1,0 +1,222 @@
+package collector
+
+import (
+	"fmt"
+	"log"
+	"net/url"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/MikhailKlemin/gerzson.boros/collector/boiler"
+	"github.com/MikhailKlemin/gerzson.boros/collector/browser"
+	"github.com/MikhailKlemin/gerzson.boros/collector/client"
+	"github.com/MikhailKlemin/gerzson.boros/collector/postprocess"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/pkg/errors"
+)
+
+//Collector is
+type Collector struct {
+	Opts Options
+}
+
+//Entity is
+type Entity struct {
+	MainDomain  string
+	RedirectsTo string
+	Links       []string
+	Texts       []Info
+}
+
+//Info scraped data from domain
+type Info struct {
+	Link      string
+	RawHTML   string
+	RawText   string
+	Boiler    string
+	TimeStamp time.Time
+}
+
+//Options have default setting
+type Options struct {
+	Domain   string
+	Keywords []string
+	re       *regexp.Regexp
+}
+
+//NewCollector constructor
+func NewCollector(Domain string) *Collector {
+	var c Collector
+	c.Opts = DefaultOptions(Domain)
+	return &c
+
+}
+
+//DefaultOptions constructor
+func DefaultOptions(Domain string) Options {
+	var o Options
+	o.Domain = Domain
+	o.Keywords = []string{"kapcsolat", "rolunk", "ceginformacio", "cegunkrol", "contact", "bemutatkozas", "elerhetoseg", "about", "elerhetosegeink", "elerhetosegek", "cegunkrol", "magunkrol", "contacts", "fooldal", "home", "szolgaltatasok", "index", "elerhetoseg", "rolam", "cegunkrol", "fooldal", "impresszum", "jogi-nyilatkozat", "cookie-szabalyzat", "adatkezelesi-szabalyzat", "szerzodesi-feltetelekszerzodesi-feltetelek", "feltetelekszerzodesi-feltetelek", "adatvedelmi-nyilatkozat", "adatkezelesi-tajekoztato", "adatvedelmi-tajekoztato", "adatvedelem", "adatkezeles", "nyilatkozat", "terms-and-conditions", "aszf", "privacy-policy"}
+	o.re = regexp.MustCompile(`\s+`)
+
+	return o
+}
+
+//Start starts scraping
+func (c *Collector) Start() (e Entity) {
+	links, redirectedTo, err := c.collectLinks()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	fmt.Println(redirectedTo)
+
+	e.MainDomain = c.Opts.Domain
+	e.RedirectsTo = redirectedTo
+
+	var data []Info
+
+	sem := make(chan bool, 10)
+	var mu sync.Mutex
+	for _, link := range links {
+		sem <- true
+		go func(link string) {
+			defer func() { <-sem }()
+			//fmt.Println("Processing\t", link)
+			d, bp, err := c.bpLinkWithChrome(link)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			text, err := postprocess.Tokenize(strings.NewReader(d))
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			mu.Lock()
+			data = append(data, Info{Link: link, RawHTML: d, RawText: text, Boiler: bp, TimeStamp: time.Now()})
+			mu.Unlock()
+		}(link)
+		//fmt.Println(data)
+	}
+	for i := 0; i < cap(sem); i++ {
+		sem <- true
+	}
+	e.Texts = data
+
+	for _, l := range e.Texts {
+		fmt.Println("Iterating", l.Link)
+		e.Links = append(e.Links, l.Link)
+	}
+	return
+}
+
+//collectLinks parses 1st page without creating Chrome instance,
+//and collects all links which are belogs to same host, and filter out
+//links to pdf and doc files.
+func (c *Collector) collectLinks() (links []string, redirectedTo string, err error) {
+	mclient := client.CreateClient()
+
+	um := make(map[string]bool)
+
+	var (
+		doc *goquery.Document
+	)
+
+	doc, redirectedTo, err = mclient.GetRedirect(c.Opts.Domain)
+	if err != nil {
+		return links, "", errors.Wrap(err, "Cannot get domain link")
+	}
+
+	dURL, err := url.ParseRequestURI(redirectedTo)
+	if err != nil {
+		return links, "", errors.Wrap(err, "Cannot parse domain URL "+c.Opts.Domain)
+	}
+	links = append(links, redirectedTo)
+
+	//doc, err := goquery.NewDocumentFromReader(bytes.NewReader(b))
+	doc.Find(`a`).Each(func(i int, s *goquery.Selection) {
+		if href, ok := s.Attr(`href`); ok {
+			lURL, err := url.Parse(href)
+			if err != nil {
+				log.Println(errors.Wrap(err, "problem parsing URL"))
+				return
+			}
+			link := dURL.ResolveReference(lURL).String()
+			if c.contains(link) && c.samehost(c.Opts.Domain, link) &&
+				!strings.HasSuffix(link, ".pdf") &&
+				!strings.HasSuffix(link, ".doc") {
+				if _, ok := um[link]; !ok {
+					um[link] = true
+					links = append(links, link)
+
+				}
+			}
+		}
+	})
+
+	return
+}
+
+func (c *Collector) bpLinkWithChrome(link string) (data string, bp string, err error) {
+	data, err = browser.GetText(link) //returns rawHTML
+	if err != nil {
+		return data, bp, errors.Wrap(err, "can't get text for link:"+link)
+	}
+	data = c.Opts.re.ReplaceAllString(data, " ")
+	bp, err = boiler.Getboiler(strings.NewReader(data))
+	//bp, err = boiler.Tika(strings.NewReader(data))
+	if err != nil {
+		log.Println(err)
+	}
+	return
+
+}
+
+func (c *Collector) contains(link string) bool {
+
+	for _, keyword := range c.Opts.Keywords {
+		if strings.Contains(link, keyword) {
+			return true
+		}
+	}
+	return false
+
+}
+
+//samehost just comparing two link and figure if they are belong to same host
+//in a way that http://a.mysite.com will be same host as http://b.mysite.com
+func (c *Collector) samehost(dlink string, link string) bool {
+	geth := func(link string) (string, error) {
+		u, err := url.ParseRequestURI(link)
+		if err != nil {
+			//log.Fatal(err)
+			return "", err
+		}
+		parts := strings.Split(u.Hostname(), ".")
+		if len(parts) >= 2 {
+			return parts[len(parts)-2] + "." + parts[len(parts)-1], nil
+		}
+		return "", errors.New("Not enought parts in URL\t" + link)
+
+	}
+	h1, err := geth(dlink)
+	if err != nil {
+		return false
+	}
+
+	h2, err := geth(link)
+	if err != nil {
+		return false
+	}
+
+	if h1 != h2 {
+		return false
+	}
+	return true
+}
