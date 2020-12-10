@@ -54,6 +54,9 @@ func (m *MyClient) Get(link string) (doc *goquery.Document, err error) {
 			time.Sleep(10 * time.Second)
 			continue
 		}
+		if resp.StatusCode != 200 {
+			log.Println(resp.Status)
+		}
 
 		doc, err = goquery.NewDocumentFromReader(resp.Body)
 		if err != nil {
@@ -80,17 +83,23 @@ func (m *MyClient) GetRedirect(link string) (doc *goquery.Document, redirectedTo
 		counter++
 		resp, err := m.client.Get(link)
 		if err != nil {
+			counter++
 			log.Println(err)
-			time.Sleep(10 * time.Second)
+			time.Sleep(2 * time.Second)
 			continue
 		}
 
+		if resp.StatusCode != 200 {
+			counter++
+			time.Sleep(2 * time.Second)
+			log.Println(resp.Status)
+		}
 		doc, err = goquery.NewDocumentFromReader(resp.Body)
 		if err != nil {
 			log.Println(err)
-
 			time.Sleep(10 * time.Second)
 			resp.Body.Close()
+			counter++
 			continue
 		}
 		resp.Body.Close()

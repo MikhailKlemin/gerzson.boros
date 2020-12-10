@@ -1,4 +1,8 @@
 {
     "output_directory": "assets/samples/",
-    "path_to_domain_file": "assets/1000-domains.txt"
+    "path_to_domain_file": "assets/1000-domains.txt",
+    "database_host": "mongodb://localhost:27017",
+    "database_name": "my_test",
+    "database_collection": "text_data"
+
 }

@@ -24,19 +24,19 @@ type Collector struct {
 
 //Entity is
 type Entity struct {
-	MainDomain  string
-	RedirectsTo string
-	Links       []string
-	Texts       []Info
+	MainDomain  string   `bson:"maindomain"`
+	RedirectsTo string   `bson:"redirectsto"`
+	Links       []string `bson:"links"`
+	Texts       []Info   `bson:"texts"`
 }
 
 //Info scraped data from domain
 type Info struct {
-	Link      string
-	RawHTML   string
-	RawText   string
-	Boiler    string
-	TimeStamp time.Time
+	Link      string    `bson:"link"`
+	RawHTML   string    `bson:"rawhtml"`
+	RawText   string    `bson:"rawtest"`
+	Boiler    string    `bson:"boiler"`
+	TimeStamp time.Time `bson:"timestamp"`
 }
 
 //Options have default setting
@@ -66,7 +66,7 @@ func DefaultOptions(Domain string) Options {
 
 //Start starts scraping
 func (c *Collector) Start() (e Entity) {
-	links, redirectedTo, err := c.collectLinks()
+	links, all, redirectedTo, err := c.collectLinks()
 	if err != nil {
 		log.Println(err)
 		return
@@ -76,6 +76,7 @@ func (c *Collector) Start() (e Entity) {
 
 	e.MainDomain = c.Opts.Domain
 	e.RedirectsTo = redirectedTo
+	e.Links = all
 
 	var data []Info
 
@@ -85,7 +86,7 @@ func (c *Collector) Start() (e Entity) {
 		sem <- true
 		go func(link string) {
 			defer func() { <-sem }()
-			//fmt.Println("Processing\t", link)
+			fmt.Println("Processing\t", link)
 			d, bp, err := c.bpLinkWithChrome(link)
 			if err != nil {
 				log.Println(err)
@@ -109,20 +110,21 @@ func (c *Collector) Start() (e Entity) {
 	}
 	e.Texts = data
 
-	for _, l := range e.Texts {
+	/*for _, l := range e.Texts {
 		fmt.Println("Iterating", l.Link)
 		e.Links = append(e.Links, l.Link)
-	}
+	}*/
 	return
 }
 
 //collectLinks parses 1st page without creating Chrome instance,
 //and collects all links which are belogs to same host, and filter out
 //links to pdf and doc files.
-func (c *Collector) collectLinks() (links []string, redirectedTo string, err error) {
+func (c *Collector) collectLinks() (links []string, alllinks []string, redirectedTo string, err error) {
 	mclient := client.CreateClient()
 
 	um := make(map[string]bool)
+	uma := make(map[string]bool)
 
 	var (
 		doc *goquery.Document
@@ -130,12 +132,12 @@ func (c *Collector) collectLinks() (links []string, redirectedTo string, err err
 
 	doc, redirectedTo, err = mclient.GetRedirect(c.Opts.Domain)
 	if err != nil {
-		return links, "", errors.Wrap(err, "Cannot get domain link")
+		return links, alllinks, "", errors.Wrap(err, "Cannot get domain link")
 	}
 
 	dURL, err := url.ParseRequestURI(redirectedTo)
 	if err != nil {
-		return links, "", errors.Wrap(err, "Cannot parse domain URL "+c.Opts.Domain)
+		return links, alllinks, "", errors.Wrap(err, "Cannot parse domain URL "+c.Opts.Domain)
 	}
 	links = append(links, redirectedTo)
 
@@ -148,23 +150,31 @@ func (c *Collector) collectLinks() (links []string, redirectedTo string, err err
 				return
 			}
 			link := dURL.ResolveReference(lURL).String()
-			if c.contains(link) && c.samehost(c.Opts.Domain, link) &&
+			fmt.Println(lURL.String(), "\t", link)
+			if c.samehost(redirectedTo, link) {
+				if _, ok := uma[link]; !ok {
+					uma[link] = true
+					alllinks = append(alllinks, link)
+				}
+			}
+			if c.contains(link) && c.samehost(redirectedTo, link) &&
 				!strings.HasSuffix(link, ".pdf") &&
 				!strings.HasSuffix(link, ".doc") {
 				if _, ok := um[link]; !ok {
 					um[link] = true
 					links = append(links, link)
-
 				}
 			}
 		}
 	})
 
+	//log.Println("links collected")
+	//fmt.Printf("%#v\n", links)
 	return
 }
 
 func (c *Collector) bpLinkWithChrome(link string) (data string, bp string, err error) {
-	data, err = browser.GetText(link) //returns rawHTML
+	data, err = browser.GetText2(link) //returns rawHTML
 	if err != nil {
 		return data, bp, errors.Wrap(err, "can't get text for link:"+link)
 	}

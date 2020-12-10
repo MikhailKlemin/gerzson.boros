@@ -1,45 +1,48 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/MikhailKlemin/gerzson.boros/collector"
+	"github.com/MikhailKlemin/gerzson.boros/collector/config"
+	"github.com/MikhailKlemin/gerzson.boros/collector/database"
 )
 
 //var domains = []string{"femina.hu", "totalcar.hu", "velvet.hu", "telekom.hu", "rtl.hu", "emag.hu", "portfolio.hu", "eropolis.hu", "ripost.hu", "argep.hu", "t-online.hu", "prohardver.hu", "napi.hu", "nosalty.hu", "bme.hu", "sorozatjunkie.hu", "mestermc.hu", "love.hu", "keptelenseg.hu", "e-kreta.hu", "oktatas.hu", "blogstar.hu", "csubakka.hu", "mozanaplo.hu", "hwsw.hu", "liked.hu", "hupont.hu", "jysk.hu", "aczelauto.hu", "aczelestarsa.hu", "aczelpetra.hu", "ad.hu", "ad-media.hu", "ad6kap6.hu", "adab.hu"}
-
-//Config is configuration
-type Config struct {
-	OutDir     string `json:"output_directory"`
-	DomainPath string `json:"path_to_domain_file"`
-}
+var db *database.Datastore
 
 func main() {
+	//log := logrus.New()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	c := config.LoadGeneralConfig()
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
-	var c Config
-	b, err := ioutil.ReadFile("./config.json")
+	db = database.NewDatastore(ctx, c)
+	/*dbs, err := db.Client.ListDatabaseNames(ctx, bson.M{"name": primitive.Regex{Pattern: ".*"}})
 	if err != nil {
-		log.Fatal("Cannot read config file " + err.Error())
+		log.Fatal(err)
 	}
-	err = json.Unmarshal(b, &c)
-	if err != nil {
-		log.Fatal("Cannot read json file " + err.Error())
+	fmt.Println(strings.Join(dbs, "\t"))
+	*/
 
-	}
+	defer db.Client.Disconnect(ctx)
+
 	start(c.OutDir, c.DomainPath)
 
+	//db := database.NewDatastore(c, log)
+	//db.Session.Connect()
 }
 
 func start(outDir, domainPath string) {
 
 	domains := loaddomains(domainPath)
+	//domains = []string{"lovastura.hu"}
 	domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
@@ -56,12 +59,13 @@ func start(outDir, domainPath string) {
 		sem <- true
 		go func(dl string) {
 			defer func() { <-sem }()
-			d := collector.NewCollector("http://" + dl)
+			d := collector.NewCollector("http://" + dl + "/")
 			data := d.Start()
-			sample, _ := json.MarshalIndent(data, "", "    ")
+			db.Insert(data)
+			/*sample, _ := json.MarshalIndent(data, "", "    ")
 			if err := ioutil.WriteFile(filepath.Join(outDir, dl+".json"), sample, 0600); err != nil {
 				log.Println(err)
-			}
+			}*/
 		}(dl)
 
 	}
