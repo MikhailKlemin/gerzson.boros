@@ -59,7 +59,7 @@ func (db *Datastore) Insert(v interface{}) {
 
 	collection := db.Client.Database(db.conf.DatabaseName).Collection(db.conf.DatabaseCollection)
 
-	r, err := collection.InsertOne(context.TODO(), v)
+	_, err := collection.InsertOne(context.TODO(), v)
 	if err != nil {
 		var merr mongo.WriteException
 		merr = err.(mongo.WriteException)

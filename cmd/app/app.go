@@ -21,8 +21,9 @@ func main() {
 	//log := logrus.New()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	c := config.LoadGeneralConfig()
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
+	defer cancel()
 	db = database.NewDatastore(ctx, c)
 	/*dbs, err := db.Client.ListDatabaseNames(ctx, bson.M{"name": primitive.Regex{Pattern: ".*"}})
 	if err != nil {
@@ -43,7 +44,7 @@ func start(outDir, domainPath string) {
 
 	domains := loaddomains(domainPath)
 	//domains = []string{"lovastura.hu"}
-	domains = domains[:10]
+	//domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
 	sem := make(chan bool, 40)
