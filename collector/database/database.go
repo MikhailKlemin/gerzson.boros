@@ -62,10 +62,14 @@ func (db *Datastore) Insert(v interface{}) {
 	_, err := collection.InsertOne(context.TODO(), v)
 	if err != nil {
 		var merr mongo.WriteException
-		merr = err.(mongo.WriteException)
-		errCode := merr.WriteErrors[0].Code
-		if errCode == 11000 {
-			return
+		var ok bool
+
+		merr, ok = err.(mongo.WriteException)
+		if ok {
+			errCode := merr.WriteErrors[0].Code
+			if errCode == 11000 {
+				return
+			}
 		}
 		log.Fatal(err.Error())
 
