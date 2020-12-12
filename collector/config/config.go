@@ -14,6 +14,7 @@ type GeneralConfig struct {
 	DatabaseHost       string `json:"database_host"`
 	DatabaseCollection string `json:"database_collection"`
 	Concurrency        int    `json:"concurrency"`
+	ChromeTimeout      int    `json:"chrome_timeout"`
 }
 
 //LoadGeneralConfig loads gen config

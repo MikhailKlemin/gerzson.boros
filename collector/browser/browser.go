@@ -41,7 +41,7 @@ func GetText(link string) (string, error) {
 */
 
 //GetText2 Same as GetText but with rod
-func GetText2(link string) (string, error) {
+func GetText2(link string, timeout int) (string, error) {
 
 	check := func(err error) {
 		var evalErr *rod.ErrEval
@@ -79,7 +79,7 @@ func GetText2(link string) (string, error) {
 	//page := browser.MustPage(link)
 	var page *rod.Page
 	err := rod.Try(func() {
-		page = browser.Timeout(20 * time.Second).MustPage(link)
+		page = browser.Timeout(time.Duration(timeout) * time.Second).MustPage(link)
 
 	})
 

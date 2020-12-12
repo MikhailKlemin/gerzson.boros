@@ -12,6 +12,7 @@ import (
 	"github.com/MikhailKlemin/gerzson.boros/collector/boiler"
 	"github.com/MikhailKlemin/gerzson.boros/collector/browser"
 	"github.com/MikhailKlemin/gerzson.boros/collector/client"
+	"github.com/MikhailKlemin/gerzson.boros/collector/config"
 	"github.com/MikhailKlemin/gerzson.boros/collector/postprocess"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ import (
 //Collector is
 type Collector struct {
 	Opts Options
+	c    config.GeneralConfig
 }
 
 //Entity is
@@ -47,9 +49,10 @@ type Options struct {
 }
 
 //NewCollector constructor
-func NewCollector(Domain string) *Collector {
+func NewCollector(Domain string, conf config.GeneralConfig) *Collector {
 	var c Collector
 	c.Opts = DefaultOptions(Domain)
+	c.c = conf
 	return &c
 
 }
@@ -86,8 +89,8 @@ func (c *Collector) Start() (e Entity) {
 		sem <- true
 		go func(link string) {
 			defer func() { <-sem }()
-			fmt.Println("Processing\t", link)
-			d, bp, err := c.bpLinkWithChrome(link)
+			//fmt.Println("Processing\t", link)
+			d, bp, err := c.bpLinkWithChrome(link, c.c.ChromeTimeout)
 			if err != nil {
 				log.Println(err)
 				return
@@ -150,7 +153,7 @@ func (c *Collector) collectLinks() (links []string, alllinks []string, redirecte
 				return
 			}
 			link := dURL.ResolveReference(lURL).String()
-			fmt.Println(lURL.String(), "\t", link)
+			//fmt.Println(lURL.String(), "\t", link)
 			if c.samehost(redirectedTo, link) {
 				if _, ok := uma[link]; !ok {
 					uma[link] = true
@@ -173,8 +176,8 @@ func (c *Collector) collectLinks() (links []string, alllinks []string, redirecte
 	return
 }
 
-func (c *Collector) bpLinkWithChrome(link string) (data string, bp string, err error) {
-	data, err = browser.GetText2(link) //returns rawHTML
+func (c *Collector) bpLinkWithChrome(link string, timeout int) (data string, bp string, err error) {
+	data, err = browser.GetText2(link, timeout) //returns rawHTML
 	if err != nil {
 		return data, bp, errors.Wrap(err, "can't get text for link:"+link)
 	}

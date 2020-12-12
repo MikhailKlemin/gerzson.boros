@@ -45,7 +45,7 @@ func main() {
 func start(conf config.GeneralConfig) {
 
 	domains := loaddomains(conf.DomainPath)
-	//domains = []string{"lovastura.hu"}
+	domains = []string{"szamlazz.hu", "szamlazz.hu", "szamlazz.hu", "szamlazz.hu"}
 	//domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
@@ -62,8 +62,9 @@ func start(conf config.GeneralConfig) {
 		sem <- true
 		go func(dl string) {
 			defer func() { <-sem }()
-			d := collector.NewCollector("http://" + dl + "/")
+			d := collector.NewCollector("http://"+dl+"/", conf)
 			data := d.Start()
+			fmt.Println(len(data.Texts))
 			db.Insert(data)
 			/*sample, _ := json.MarshalIndent(data, "", "    ")
 			if err := ioutil.WriteFile(filepath.Join(outDir, dl+".json"), sample, 0600); err != nil {
