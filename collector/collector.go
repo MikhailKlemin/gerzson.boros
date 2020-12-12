@@ -82,7 +82,7 @@ func (c *Collector) Start() (e Entity) {
 
 	var data []Info
 
-	sem := make(chan bool, 2)
+	sem := make(chan bool, 5)
 	var mu sync.Mutex
 	for _, link := range links {
 		sem <- true

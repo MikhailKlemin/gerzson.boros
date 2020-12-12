@@ -47,7 +47,7 @@ func main() {
 func start(conf config.GeneralConfig) {
 
 	domains := loaddomains(conf.DomainPath)
-	domains = []string{"szamlazz.hu", "szamlazz.hu", "szamlazz.hu", "szamlazz.hu"}
+	//domains = []string{"szamlazz.hu", "szamlazz.hu", "szamlazz.hu", "szamlazz.hu"}
 	//domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
