@@ -75,7 +75,7 @@ func GetText2(link string, timeout int) (string, error) {
 	// auth the proxy
 	// here we use cli tool "mitmproxy --proxyauth user:pass" as an example
 	defer browser.Close()
-
+	//defer time.Sleep(5 * time.Second)
 	//page := browser.MustPage(link)
 	var page *rod.Page
 	err := rod.Try(func() {

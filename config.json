@@ -4,7 +4,7 @@
     "database_host": "mongodb://localhost:27017",
     "database_name": "my_test",
     "database_collection": "text_data",
-    "concurrency" : 20,
+    "concurrency" : 1,
     "chrome_timeout": 60
 
 }
