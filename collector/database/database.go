@@ -71,7 +71,7 @@ func (db *Datastore) Insert(v interface{}) {
 				return
 			}
 		}
-		log.Fatal(err.Error())
+		log.Println(err.Error())
 
 	}
 	//fmt.Println("Inserted post with ID:", r.InsertedID)
