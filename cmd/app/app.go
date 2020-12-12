@@ -66,7 +66,7 @@ func start(conf config.GeneralConfig) {
 			defer func() { <-sem }()
 			d := collector.NewCollector("http://"+dl+"/", conf)
 			data := d.Start()
-			fmt.Println(len(data.Texts))
+			//			fmt.Println(len(data.Texts))
 			db.Insert(data)
 			sample, _ := json.MarshalIndent(data, "", "    ")
 			if err := ioutil.WriteFile(filepath.Join(conf.OutDir, dl+".json"), sample, 0600); err != nil {
