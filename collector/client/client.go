@@ -109,12 +109,12 @@ func (m *MyClient) GetByte(link string) (b []byte, err error) {
 		//resp, err := m.client.Get(link)
 		resp, err := m.client.Do(req)
 		if err != nil {
-			log.Println(err)
+			log.Println(link, ":", err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
 		if resp.StatusCode != 200 {
-			log.Println(resp.Status)
+			log.Println(link, ":", resp.Status)
 		}
 
 		b, err = ioutil.ReadAll(resp.Body)
