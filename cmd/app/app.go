@@ -60,13 +60,18 @@ func start(conf config.GeneralConfig) {
 			t = time.Now()
 		}
 		sem <- true
+		fmt.Println("[Started:]\t", dl, "\tLeft:", len(domains)-i)
+
 		go func(dl string) {
 			defer func() { <-sem }()
-			d := collector.NewCollector("https://www."+dl+"/", conf)
+			d := collector.NewCollector("http://"+dl+"/", conf)
 			data := d.Start()
+			if data.MainDomain == "" {
+				log.Println("Empty domain")
+				data.MainDomain = dl
+			}
 			//			fmt.Println(len(data.Texts))
 			db.Insert(data)
-			//fmt.Println("[SUCEESS:\t]", )
 			/*
 				sample, _ := json.MarshalIndent(data, "", "    ")
 				if err := ioutil.WriteFile(filepath.Join(conf.OutDir, dl+".json"), sample, 0600); err != nil {

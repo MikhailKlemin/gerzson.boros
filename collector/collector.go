@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"fmt"
 	"log"
 	"net/url"
 	"regexp"
@@ -68,7 +67,7 @@ func DefaultOptions(Domain string) Options {
 
 //Start starts scraping
 func (c *Collector) Start() (e Entity) {
-	links, all, redirectedTo, err := c.collectLinks()
+	links, all, redirectedTo, err := c.collectLinks2()
 	if err != nil {
 		log.Println(err)
 		return
@@ -111,7 +110,7 @@ func (c *Collector) Start() (e Entity) {
 				log.Println(err)
 				return
 			}
-			fmt.Println("[INFO]", "Success:\t", link)
+			//fmt.Println("[INFO]", "Success:\t", link)
 			mu.Lock()
 			data = append(data, Info{Link: link, RawHTML: d, RawText: text, Boiler: bp, TimeStamp: time.Now()})
 			mu.Unlock()
@@ -156,6 +155,62 @@ func (c *Collector) collectLinks() (links []string, alllinks []string, redirecte
 
 	//doc, err := goquery.NewDocumentFromReader(bytes.NewReader(b))
 	doc.Find(`a`).Each(func(i int, s *goquery.Selection) {
+		if href, ok := s.Attr(`href`); ok {
+			lURL, err := url.Parse(href)
+			if err != nil {
+				log.Println(errors.Wrap(err, "problem parsing URL"))
+				return
+			}
+			link := dURL.ResolveReference(lURL).String()
+			//fmt.Println(lURL.String(), "\t", link)
+			if c.samehost(redirectedTo, link) {
+				if _, ok := uma[link]; !ok {
+					uma[link] = true
+					alllinks = append(alllinks, link)
+				}
+			}
+			if c.contains(link) && c.samehost(redirectedTo, link) &&
+				!strings.HasSuffix(link, ".pdf") &&
+				!strings.HasSuffix(link, ".doc") {
+				if _, ok := um[link]; !ok {
+					um[link] = true
+					links = append(links, link)
+				}
+			}
+		}
+	})
+
+	//log.Println("links collected")
+	//fmt.Printf("%#v\n", links)
+	return
+}
+
+func (c *Collector) collectLinks2() (links []string, alllinks []string, redirectedTo string, err error) {
+	mclient := client.CreateClient2()
+
+	um := make(map[string]bool)
+	uma := make(map[string]bool)
+
+	err = mclient.Open(c.Opts.Domain)
+	if err != nil {
+		return
+	}
+	redirectedTo = mclient.Url().String()
+	//fmt.Println(c.Opts.Domain, "redirected to ", redirectedTo)
+	/*
+		doc, redirectedTo, err = mclient.GetRedirect(c.Opts.Domain)
+		if err != nil {
+			return links, alllinks, "", errors.Wrap(err, "Cannot get domain link")
+		}*/
+
+	dURL, err := url.ParseRequestURI(redirectedTo)
+	if err != nil {
+		return links, alllinks, "", errors.Wrap(err, "Cannot parse domain URL "+c.Opts.Domain)
+	}
+	links = append(links, redirectedTo)
+
+	//doc, err := goquery.NewDocumentFromReader(bytes.NewReader(b))
+	mclient.Find(`a`).Each(func(i int, s *goquery.Selection) {
 		if href, ok := s.Attr(`href`); ok {
 			lURL, err := url.Parse(href)
 			if err != nil {
