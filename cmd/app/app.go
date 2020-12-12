@@ -34,20 +34,22 @@ func main() {
 
 	defer db.Client.Disconnect(ctx)
 
-	start(c.OutDir, c.DomainPath)
+	//start(c.OutDir, c.DomainPath)
+	start(c)
 
 	//db := database.NewDatastore(c, log)
 	//db.Session.Connect()
 }
 
-func start(outDir, domainPath string) {
+//func start(outDir, domainPath string) {
+func start(conf config.GeneralConfig) {
 
-	domains := loaddomains(domainPath)
+	domains := loaddomains(conf.DomainPath)
 	//domains = []string{"lovastura.hu"}
 	//domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
-	sem := make(chan bool, 40)
+	sem := make(chan bool, conf.Concurrency)
 
 	fmt.Println("Total domains to scrap:\t", len(domains))
 

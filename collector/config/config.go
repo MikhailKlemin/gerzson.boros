@@ -13,6 +13,7 @@ type GeneralConfig struct {
 	DatabaseName       string `json:"database_name"`
 	DatabaseHost       string `json:"database_host"`
 	DatabaseCollection string `json:"database_collection"`
+	Concurrency        int    `json:"concurrency"`
 }
 
 //LoadGeneralConfig loads gen config
