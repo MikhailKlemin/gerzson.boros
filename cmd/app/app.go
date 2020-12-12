@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -66,10 +68,10 @@ func start(conf config.GeneralConfig) {
 			data := d.Start()
 			fmt.Println(len(data.Texts))
 			db.Insert(data)
-			/*sample, _ := json.MarshalIndent(data, "", "    ")
-			if err := ioutil.WriteFile(filepath.Join(outDir, dl+".json"), sample, 0600); err != nil {
+			sample, _ := json.MarshalIndent(data, "", "    ")
+			if err := ioutil.WriteFile(filepath.Join(conf.OutDir, dl+".json"), sample, 0600); err != nil {
 				log.Println(err)
-			}*/
+			}
 		}(dl)
 
 	}

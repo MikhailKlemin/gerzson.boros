@@ -1,15 +1,5 @@
 package browser
 
-import (
-	"context"
-	"fmt"
-	"time"
-
-	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
-	"github.com/pkg/errors"
-)
-
 /*
 //GetText starts ChromeInstance and get the link
 func GetText(link string) (string, error) {
@@ -40,6 +30,7 @@ func GetText(link string) (string, error) {
 }
 */
 
+/*
 //GetText2 Same as GetText but with rod
 func GetText2(link string, timeout int) (string, error) {
 
@@ -56,13 +47,11 @@ func GetText2(link string, timeout int) (string, error) {
 	}
 
 	l := launcher.New().
-		//		Set("proxy-server", "socks5://"+p). // add a flag, here we set a http proxy
 		Headless(true).
 		Set("blink-settings", "imagesEnabled=false").
 		Devtools(false)
 
 	defer l.Cleanup() // remove user-data-dir
-	//l.ProfileDir("/media/mike/WDC4_1/chrome-profiles/" + p)
 
 	url := l.MustLaunch()
 
@@ -72,11 +61,7 @@ func GetText2(link string, timeout int) (string, error) {
 		SlowMotion(1 * time.Second).
 		MustConnect()
 
-	// auth the proxy
-	// here we use cli tool "mitmproxy --proxyauth user:pass" as an example
 	defer browser.Close()
-	//defer time.Sleep(5 * time.Second)
-	//page := browser.MustPage(link)
 	var page *rod.Page
 	err := rod.Try(func() {
 		page = browser.Timeout(time.Duration(timeout) * time.Second).MustPage(link)
@@ -88,27 +73,7 @@ func GetText2(link string, timeout int) (string, error) {
 		return "", errors.Wrap(err, "an error")
 	}
 
-	/*	if err != nil {
-			return "", errors.Wrap(err, fmt.Sprintf("Cannot navigate to %s", link))
-		}
-	*/
-	/*
-		elems, err := page.Elements("frame")
-		if err != nil {
-			return "", nil
-		}
 
-		var src []string
-		for _, elem := range elems {
-			src = append(src, elem.MustHTML())
-
-		}
-
-		if len(elems) > 0 {
-			return strings.Join(src, "\n"), nil
-
-		}
-	*/
 	var html string
 	err = rod.Try(func() {
 		html = page.MustSearch(`body`).MustHTML()
@@ -120,5 +85,5 @@ func GetText2(link string, timeout int) (string, error) {
 	}
 
 	return html, nil
-	//return "", err
 }
+*/

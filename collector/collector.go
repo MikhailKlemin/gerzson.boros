@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/MikhailKlemin/gerzson.boros/collector/boiler"
-	"github.com/MikhailKlemin/gerzson.boros/collector/browser"
 	"github.com/MikhailKlemin/gerzson.boros/collector/client"
 	"github.com/MikhailKlemin/gerzson.boros/collector/config"
 	"github.com/MikhailKlemin/gerzson.boros/collector/postprocess"
@@ -90,7 +89,9 @@ func (c *Collector) Start() (e Entity) {
 		go func(link string) {
 			defer func() { <-sem }()
 			//fmt.Println("Processing\t", link)
-			d, bp, err := c.bpLinkWithChrome(link, c.c.ChromeTimeout)
+			//d, bp, err := c.bpLinkWithChrome(link, c.c.ChromeTimeout)
+			d, bp, err := c.bpLinkWithHTTPClient(link)
+
 			if err != nil {
 				log.Println(err)
 				return
@@ -176,11 +177,32 @@ func (c *Collector) collectLinks() (links []string, alllinks []string, redirecte
 	return
 }
 
+/*
 func (c *Collector) bpLinkWithChrome(link string, timeout int) (data string, bp string, err error) {
 	data, err = browser.GetText2(link, timeout) //returns rawHTML
 	if err != nil {
 		return data, bp, errors.Wrap(err, "can't get text for link:"+link)
 	}
+	data = c.Opts.re.ReplaceAllString(data, " ")
+	bp, err = boiler.Getboiler(strings.NewReader(data))
+	//bp, err = boiler.Tika(strings.NewReader(data))
+	if err != nil {
+		log.Println(err)
+	}
+	return
+
+}
+*/
+
+func (c *Collector) bpLinkWithHTTPClient(link string) (data string, bp string, err error) {
+	var b []byte
+	client := client.CreateClient()
+	b, err = client.GetByte(link) //returns rawHTML
+	if err != nil {
+		return data, bp, errors.Wrap(err, "can't get text for link:"+link)
+	}
+
+	data = string(b)
 	data = c.Opts.re.ReplaceAllString(data, " ")
 	bp, err = boiler.Getboiler(strings.NewReader(data))
 	//bp, err = boiler.Tika(strings.NewReader(data))
