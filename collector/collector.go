@@ -74,7 +74,7 @@ func (c *Collector) Start() (e Entity) {
 		return
 	}
 
-	fmt.Println(redirectedTo)
+	//fmt.Println(redirectedTo)
 
 	e.MainDomain = c.Opts.Domain
 	e.RedirectsTo = redirectedTo
@@ -82,27 +82,36 @@ func (c *Collector) Start() (e Entity) {
 
 	var data []Info
 
-	sem := make(chan bool, 5)
+	sem := make(chan bool, 2)
 	var mu sync.Mutex
+	var bow = client.CreateClient2()
 	for _, link := range links {
 		sem <- true
 		go func(link string) {
 			defer func() { <-sem }()
 			//fmt.Println("Processing\t", link)
 			//d, bp, err := c.bpLinkWithChrome(link, c.c.ChromeTimeout)
-			d, bp, err := c.bpLinkWithHTTPClient(link)
-
+			//d, bp, err := c.bpLinkWithHTTPClient(link)
+			err = bow.Open(link)
 			if err != nil {
 				log.Println(err)
 				return
 			}
+
+			d, err := bow.Dom().Html()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			d = c.Opts.re.ReplaceAllString(d, " ")
+			bp, _ := boiler.Getboiler(strings.NewReader(d))
 
 			text, err := postprocess.Tokenize(strings.NewReader(d))
 			if err != nil {
 				log.Println(err)
 				return
 			}
-
+			fmt.Println("[INFO]", "Success:\t", link)
 			mu.Lock()
 			data = append(data, Info{Link: link, RawHTML: d, RawText: text, Boiler: bp, TimeStamp: time.Now()})
 			mu.Unlock()
@@ -197,7 +206,7 @@ func (c *Collector) bpLinkWithChrome(link string, timeout int) (data string, bp 
 func (c *Collector) bpLinkWithHTTPClient(link string) (data string, bp string, err error) {
 	var b []byte
 	client := client.CreateClient()
-	b, err = client.GetByte(link) //returns rawHTML
+	b, err = client.GetByte2(link) //returns rawHTML
 	if err != nil {
 		return data, bp, errors.Wrap(err, "can't get text for link:"+link)
 	}

@@ -45,7 +45,7 @@ func main() {
 func start(conf config.GeneralConfig) {
 
 	domains := loaddomains(conf.DomainPath)
-	//domains = []string{"szamlazz.hu", "szamlazz.hu", "szamlazz.hu", "szamlazz.hu"}
+	//domains = []string{"index.hu"}
 	//domains = domains[:10]
 	t := time.Now()
 	tt := time.Now()
@@ -62,16 +62,18 @@ func start(conf config.GeneralConfig) {
 		sem <- true
 		go func(dl string) {
 			defer func() { <-sem }()
-			d := collector.NewCollector("http://"+dl+"/", conf)
+			d := collector.NewCollector("https://www."+dl+"/", conf)
 			data := d.Start()
 			//			fmt.Println(len(data.Texts))
 			db.Insert(data)
+			//fmt.Println("[SUCEESS:\t]", )
 			/*
 				sample, _ := json.MarshalIndent(data, "", "    ")
 				if err := ioutil.WriteFile(filepath.Join(conf.OutDir, dl+".json"), sample, 0600); err != nil {
 					log.Println(err)
 				}
 			*/
+
 		}(dl)
 
 	}
@@ -95,12 +97,13 @@ func loaddomains(path string) (dls []string) {
 
 	for _, rd := range raw {
 		rd = strings.TrimSpace(rd)
-		_, err := url.ParseRequestURI("http://" + rd)
+		_, err := url.ParseRequestURI("https://" + rd)
 		if err != nil {
 			log.Println("Bad URI\t", rd)
-		} else {
-			dls = append(dls, rd)
+			continue
 		}
+		dls = append(dls, rd)
+
 	}
 	return
 }
