@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,11 +12,10 @@ import (
 	"github.com/MikhailKlemin/gerzson.boros/collector"
 	"github.com/MikhailKlemin/gerzson.boros/collector/config"
 	"github.com/MikhailKlemin/gerzson.boros/collector/database"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 //var domains = []string{"femina.hu", "totalcar.hu", "velvet.hu", "telekom.hu", "rtl.hu", "emag.hu", "portfolio.hu", "eropolis.hu", "ripost.hu", "argep.hu", "t-online.hu", "prohardver.hu", "napi.hu", "nosalty.hu", "bme.hu", "sorozatjunkie.hu", "mestermc.hu", "love.hu", "keptelenseg.hu", "e-kreta.hu", "oktatas.hu", "blogstar.hu", "csubakka.hu", "mozanaplo.hu", "hwsw.hu", "liked.hu", "hupont.hu", "jysk.hu", "aczelauto.hu", "aczelestarsa.hu", "aczelpetra.hu", "ad.hu", "ad-media.hu", "ad6kap6.hu", "adab.hu"}
-var db *database.Datastore
+//var db *database.Datastore
 
 func main() {
 	//log := logrus.New()
@@ -25,11 +24,11 @@ func main() {
 	//database.Print(c)
 	//os.Exit(1)
 
-	/*ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	//ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 
-	defer cancel()
-	db = database.NewDatastore(ctx, c)
-	*/
+	//defer cancel()
+	//db = database.NewDatastore(ctx, c)
+
 	/*dbs, err := db.Client.ListDatabaseNames(ctx, bson.M{"name": primitive.Regex{Pattern: ".*"}})
 	if err != nil {
 		log.Fatal(err)
@@ -48,17 +47,24 @@ func main() {
 
 //func start(outDir, domainPath string) {
 func start(conf config.GeneralConfig) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	db := database.NewDatastore(ctx, conf)
+	defer db.Client.Disconnect(ctx)
+
 	domains := loaddomains(conf.DomainPath)
 	//domains = []string{"index.hu"}
 	//domains = domains[:10]
 
-	db, err := leveldb.OpenFile(conf.LevelDBPath, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	/*	db, err := leveldb.OpenFile(conf.LevelDBPath, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	defer db.Close()
-
+		defer db.Close()
+	*/
 	t := time.Now()
 
 	tt := time.Now()
@@ -103,11 +109,14 @@ func start(conf config.GeneralConfig) {
 		}
 		entity := <-results
 
-		b, _ := json.Marshal(entity)
-		err := db.Put([]byte(entity.MainDomain), b, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
+		//b, _ := json.Marshal(entity)
+		//err := db.Put([]byte(entity.MainDomain), b, nil)
+		db.Insert(entity)
+		/*
+			if err != nil {
+				log.Fatal(err)
+			}
+		*/
 
 	}
 
