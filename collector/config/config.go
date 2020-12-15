@@ -13,6 +13,7 @@ type GeneralConfig struct {
 	DatabaseName       string `json:"database_name"`
 	DatabaseHost       string `json:"database_host"`
 	DatabaseCollection string `json:"database_collection"`
+	LevelDBPath        string `json:"level_db_path"`
 	Concurrency        int    `json:"concurrency"`
 	ChromeTimeout      int    `json:"chrome_timeout"`
 }

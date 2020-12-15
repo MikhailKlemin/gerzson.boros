@@ -2,14 +2,49 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 
+	"github.com/MikhailKlemin/gerzson.boros/collector"
 	"github.com/MikhailKlemin/gerzson.boros/collector/config"
+	"github.com/syndtr/goleveldb/leveldb"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+//Print is
+func Print(conf config.GeneralConfig) {
+	db, err := leveldb.OpenFile(conf.LevelDBPath, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	count := 0
+	tcount := 0
+	iter := db.NewIterator(nil, nil)
+	for iter.Next() {
+		tcount++
+		//key:=iter.Key()
+		val := iter.Value()
+		var e collector.Entity
+
+		err := json.Unmarshal(val, &e)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(e.Texts) == 0 && e.MainDomain != "" {
+			count++
+		}
+
+	}
+	fmt.Printf("Empty %d from %d\n", count, tcount)
+
+}
 
 //Datastore stores DB
 type Datastore struct {

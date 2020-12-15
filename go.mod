@@ -9,6 +9,7 @@ require (
 	github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca // indirect
 	github.com/jlubawy/go-boilerpipe v0.4.0
 	github.com/pkg/errors v0.9.1
+	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.4.4
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
