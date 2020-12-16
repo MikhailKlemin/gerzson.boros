@@ -91,7 +91,7 @@ func (c *Collector) Start(dlink string) (e Entity, err error) {
 			defer func() { <-sem }()
 			var bow = mclient
 
-			err = bow.Open(link)
+			err := bow.Open(link)
 			if err != nil {
 				return
 			}

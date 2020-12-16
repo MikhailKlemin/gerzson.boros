@@ -80,12 +80,12 @@ func start(conf config.GeneralConfig) {
 	worker := func(tasks <-chan string, results chan<- collector.Entity) {
 		for dlink := range tasks {
 			//do shit
-			e, err := col.Start("https://" + dlink)
+			e, err := col.Start("http://" + dlink)
 			if err != nil {
 				//log.Println(err)
 			}
 			if e.MainDomain == "" {
-				e.MainDomain = "https://" + dlink
+				e.MainDomain = "http://" + dlink
 			}
 			results <- e
 			//fmt.Println(dlink)
@@ -103,15 +103,20 @@ func start(conf config.GeneralConfig) {
 
 	close(tasks)
 
+	counter := 0
 	for a := 0; a < len(domains); a++ {
 		fmt.Printf("%d                          \r", a)
 		if a%1000 == 0 && a != 0 {
-			fmt.Printf("Processing: %d time per batch: %s \n",
-				a, time.Since(t))
+			fmt.Printf("Processing: %d time per batch: %s, empty links per batch: %d \n",
+				a, time.Since(t),
+				counter)
 			t = time.Now()
+			counter = 0
 		}
 		entity := <-results
-
+		if len(entity.Links) == 0 {
+			counter++
+		}
 		//b, _ := json.Marshal(entity)
 		//err := db.Put([]byte(entity.MainDomain), b, nil)
 		db.Insert(entity)
