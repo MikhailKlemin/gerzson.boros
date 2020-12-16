@@ -82,7 +82,7 @@ func start(conf config.GeneralConfig) {
 			//do shit
 			e, err := col.Start("https://" + dlink)
 			if err != nil {
-				log.Println(err)
+				//log.Println(err)
 			}
 			if e.MainDomain == "" {
 				e.MainDomain = "https://" + dlink
