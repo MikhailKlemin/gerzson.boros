@@ -85,11 +85,12 @@ func (c *Collector) Start(dlink string) (e Entity, err error) {
 
 	sem := make(chan bool, 2)
 	var mu sync.Mutex
-	var bow = mclient
 	for _, link := range links {
 		sem <- true
 		go func(link string) {
 			defer func() { <-sem }()
+			var bow = mclient
+
 			err = bow.Open(link)
 			if err != nil {
 				return
