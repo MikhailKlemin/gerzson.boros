@@ -80,7 +80,10 @@ func start(conf config.GeneralConfig) {
 	worker := func(tasks <-chan string, results chan<- collector.Entity) {
 		for dlink := range tasks {
 			//do shit
-			e := col.Start("https://" + dlink)
+			e, err := col.Start("https://" + dlink)
+			if err != nil {
+				log.Println(err)
+			}
 			if e.MainDomain == "" {
 				e.MainDomain = "https://" + dlink
 			}

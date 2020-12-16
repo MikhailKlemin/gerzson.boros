@@ -69,12 +69,12 @@ func DefaultOptions() Options {
 }
 
 //Start starts scraping
-func (c *Collector) Start(dlink string) (e Entity) {
+func (c *Collector) Start(dlink string) (e Entity, err error) {
 	mclient := client.CreateClient2()
 
 	links, all, redirectedTo, err := c.collectLinks2(dlink, mclient)
 	if err != nil {
-		return
+		return e, errors.Wrap(err, "can not collect links from the domain "+dlink)
 	}
 
 	e.MainDomain = dlink
