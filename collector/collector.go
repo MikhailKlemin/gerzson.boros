@@ -85,7 +85,7 @@ func (c *Collector) Start(dlink string) (e Entity, err error) {
 
 	sem := make(chan bool, 2)
 	var mu sync.Mutex
-	var bow = client.CreateClient2()
+	var bow = mclient
 	for _, link := range links {
 		sem <- true
 		go func(link string) {
